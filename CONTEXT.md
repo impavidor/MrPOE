@@ -48,7 +48,7 @@ Known Sources:
 - **PoeAPI** — will own `market` _(future)_
 
 **Article**:
-A poewiki.net wiki page retrieved via the MediaWiki API. The unit of content fetched and cached by the poewiki Source Agent. The optimal content format (wikitext, HTML, or plain text extract) is to be determined empirically — the poewiki Source Agent normalizes whichever format is used before returning a Finding.
+A poewiki.net wiki page retrieved via the MediaWiki API. The unit of content fetched by the poewiki Source Agent. The optimal content format (wikitext, HTML, or plain text extract) is to be determined empirically — the poewiki Source Agent normalizes whichever format is used before returning a Finding. Articles are never cached directly; only the extracted sections are cached.
 _Avoid_: page, document, content, resource
 
 **Finding**:
@@ -101,8 +101,9 @@ _Avoid_: chat history, thread, session, context
 - The **Orchestrator** routes **Concepts** to one or more **Sources**
 - Each **Source Agent** fetches Articles for all its Concepts in parallel, then returns one **Finding** per turn to the **Orchestrator**
 - A **Finding** from the poewiki **Source Agent** is derived from one or more **Articles**
-- MediaWiki search results (Concept → Article titles) may be cached separately from Article content — these are even more stable than Articles
-- An **Article** may be cached; the cache is keyed by Article title with a 2-week TTL
+- Extracted sections for a (Concept, Article) pair are cached in the **Extraction Cache** keyed by `{concept}:{article_title}` with a 2-week TTL; raw Article content is never cached
+- A cache hit skips both the Article fetch and the LLM extraction call; a cache miss fetches the Article and runs extraction, then caches the result
+- Extractions that complete before a request timeout are cached, so a failed cold query partially warms the cache — retries converge quickly
 - An **Answer** is generated from all **Findings** plus the current **Conversation**
 - **Findings** and **Articles** are never stored in the **Conversation**
 - A **Conversation** grows by one Query/Answer pair per turn, up to the configured cap
@@ -122,7 +123,7 @@ _Avoid_: chat history, thread, session, context
 
 **Answer voice**: The Orchestrator always answers as a knowledgeable Path of Exile expert — including when it has no answer. It never cites, mentions, or references poewiki or any Source in the Answer text. Sources and stubs are implementation details invisible to the user. *"Sorry, I don't know anything about suffixes."* not *"Suffix data isn't supported yet."* *"There's no single best class for spell casting."* not *"The wiki doesn't rank classes."*
 
-**Chat UI with pipeline transparency**: The interface is a scrolling chat thread (Query/Answer pairs). While the Orchestrator is working, the UI shows intermediate steps in real time — Concepts being extracted, Articles being fetched as clickable links to their poewiki pages — before the Answer streams in. This makes latency feel shorter and lets the user see where the Answer comes from. Article URLs come from the Finding; the Answer text itself never mentions Sources. Pipeline steps are delivered as typed data stream parts (Vercel AI SDK `sendDataStreamPart()`) within the same streaming HTTP response as the Answer; the frontend reads them via `useChat`'s `data` field.
+**Chat UI**: The interface is a scrolling chat thread (Query/Answer pairs). The Answer streams in progressively as the Orchestrator synthesizes it. Concepts, Articles, and Sources are internal implementation details — never surfaced in the UI.
 
 **Out-of-scope refusal**: When a Query falls outside Path of Exile 1 mechanics, the Orchestrator detects this and returns a random pre-written message from the Refusal Pool. No LLM generation occurs for the refusal itself — the Orchestrator detects scope, then the reply is pulled from a static curated pool (e.g. *"That would cost more Mirrors of Kalandra than exist in Standard."*). The refusal pool is curated, not LLM-generated.
 
