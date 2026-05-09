@@ -1,6 +1,6 @@
 # Stub Source Agents for unbuilt data sources
 
-The app needs to route Concepts across three Domains (mechanics, items, market) from day one, but only the poewiki Source Agent is built in v1. Rather than leaving PoeDB and PoeAPI unregistered until they are implemented, we register Stub Source Agents for their Domains immediately. A stub fulfills the Source Agent interface and returns an "unsupported" Finding — no data fetching, no LLM calls. This keeps the routing table complete and lets the Orchestrator give users honest, domain-aware responses ("suffix data isn't supported yet") instead of silently ignoring the items or market dimension of a query.
+The app needs to route Concepts across three Domains (mechanics, items, market) from day one, but only the poewiki Source Agent is built in v1. Rather than leaving PoeDB and PoeAPI unregistered until they are implemented, we register Stub Source Agents for their Domains immediately. A stub fulfills the Source Agent interface and returns an empty Finding — no data fetching, no LLM calls. This keeps the routing table complete and gives the Orchestrator a well-formed (empty) Finding to reason over, which it voices in expert style without leaking implementation details ("Sorry, I don't know anything about suffixes") instead of silently ignoring the items or market dimension of a query.
 
 ## Considered Options
 
